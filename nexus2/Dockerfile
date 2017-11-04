@@ -18,14 +18,18 @@ LABEL vendor=Sonatype \
   com.sonatype.license="Apache License, Version 2.0" \
   com.sonatype.name="Nexus Repository Manager OSS base image"
 
-ENV SONATYPE_WORK /sonatype-work
-ENV NEXUS_VERSION 2.14.1-01
+ARG NEXUS_VERSION=2.14.5-02
+ARG NEXUS_DOWNLOAD_URL=https://download.sonatype.com/nexus/oss/nexus-${NEXUS_VERSION}-bundle.tar.gz
 
-ENV JAVA_HOME /opt/java
-ENV JAVA_VERSION_MAJOR 8
-ENV JAVA_VERSION_MINOR 102
-ENV JAVA_VERSION_BUILD 14
-             
+ENV SONATYPE_WORK=/nexus2 \
+    JAVA_HOME=/opt/java \
+    JAVA_VERSION_MAJOR=8 \
+    JAVA_VERSION_MINOR=144 \
+    JAVA_VERSION_BUILD=01 \
+    JAVA_DOWNLOAD_HASH=090f390dda5b47b9b721c7dfaa008135
+
+ENV JAVA_URL=http://download.oracle.com/otn-pub/java/jdk/${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-b${JAVA_VERSION_BUILD}/${JAVA_DOWNLOAD_HASH}/server-jre-${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-linux-x64.tar.gz
+
 RUN yum install -y \
   curl tar createrepo \
   && yum clean all
@@ -34,14 +38,14 @@ RUN yum install -y \
 RUN mkdir -p /opt \
   && curl --fail --silent --location --retry 3 \
   --header "Cookie: oraclelicense=accept-securebackup-cookie; " \
-  http://download.oracle.com/otn-pub/java/jdk/${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-b${JAVA_VERSION_BUILD}/server-jre-${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-linux-x64.tar.gz \
+  ${JAVA_URL} \
   | gunzip \
   | tar -x -C /opt \
   && ln -s /opt/jdk1.${JAVA_VERSION_MAJOR}.0_${JAVA_VERSION_MINOR} ${JAVA_HOME}
 
 RUN mkdir -p /opt/sonatype/nexus \
   && curl --fail --silent --location --retry 3 \
-    https://download.sonatype.com/nexus/oss/nexus-${NEXUS_VERSION}-bundle.tar.gz \
+    ${NEXUS_DOWNLOAD_URL} \
   | gunzip \
   | tar x -C /tmp nexus-${NEXUS_VERSION} \
   && mv /tmp/nexus-${NEXUS_VERSION}/* /opt/sonatype/nexus/ \
@@ -65,3 +69,4 @@ CMD ${JAVA_HOME}/bin/java \
   -cp 'conf/:lib/*' \
   ${JAVA_OPTS} \
   org.sonatype.nexus.bootstrap.Launcher ${LAUNCHER_CONF}
+
